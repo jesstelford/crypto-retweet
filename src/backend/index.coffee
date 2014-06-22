@@ -1,10 +1,14 @@
 h5bp = require 'h5bp'
 path = require 'path'
 logger = require "#{__dirname}/logger"
+config = require "#{__dirname}/config.json"
+twit = require 'twit'
 
 Handlebars = require 'handlebars'
 require './templates/index'
 require './templates/error'
+
+twitter = twit config.twit
 
 # Note that the directory tree is relative to the 'BACKEND_LIBDIR' Makefile
 # variable (`lib` by default) directory
