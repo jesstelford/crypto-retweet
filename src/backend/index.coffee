@@ -2,13 +2,13 @@ h5bp = require 'h5bp'
 path = require 'path'
 logger = require "#{__dirname}/logger"
 config = require "#{__dirname}/config.json"
-twit = require 'twit'
+Twit = require 'twit'
 
 Handlebars = require 'handlebars'
 require './templates/index'
 require './templates/error'
 
-twitter = twit config.twit
+twitter = new Twit config.twit
 
 # Note that the directory tree is relative to the 'BACKEND_LIBDIR' Makefile
 # variable (`lib` by default) directory
@@ -20,40 +20,43 @@ app = h5bp.createServer
 #if process.env.NODE_ENV is 'development'
   # Put development environment only routes + code here
 
-app.get '/', (req, res) ->
+twitter.post 'statuses/update', { status: 'hello world!' }, (err, data, response) ->
+  logger.info "update", arguments
 
-  res.send 200, Handlebars.templates['index']({})
+# app.get '/', (req, res) ->
 
-
-onError = (res, code, message, url, extra) ->
-
-  error =
-    error:
-      code: code
-      url: url
-
-  error.error.extra = extra if extra?
-
-  logger.error message, error
-
-  res.send code, Handlebars.templates['error']
-    code: code
-    message: message
+#   res.send 200, Handlebars.templates['index']({})
 
 
-# The 404 Route
-app.use (req, res, next) ->
+# onError = (res, code, message, url, extra) ->
 
-  onError res, 404, "Page Not Found", req.url
+#   error =
+#     error:
+#       code: code
+#       url: url
+
+#   error.error.extra = extra if extra?
+
+#   logger.error message, error
+
+#   res.send code, Handlebars.templates['error']
+#     code: code
+#     message: message
 
 
-# The error Route (ALWAYS Keep this as the last route)
-app.use (err, req, res, next) ->
+# # The 404 Route
+# app.use (req, res, next) ->
 
-  onError res, 500, "There was an error", req.url,
-    message: err.message
-    stack: err.stack
+#   onError res, 404, "Page Not Found", req.url
 
 
-app.listen 3000
+# # The error Route (ALWAYS Keep this as the last route)
+# app.use (err, req, res, next) ->
+
+#   onError res, 500, "There was an error", req.url,
+#     message: err.message
+#     stack: err.stack
+
+
+# app.listen 3000
 logger.info "STARTUP: Listening on http://localhost:3000"
