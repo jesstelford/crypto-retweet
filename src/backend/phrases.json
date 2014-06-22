@@ -1,0 +1,14 @@
+[
+  {
+    "regex": "(?:RT|Retweet)? (?:this )?(?:(?:and|to) get|for) (\\d+) Doge(?:coin)?",
+    "track": [
+      "Retweet and get Doge", "Retweet and get Dogecoin",
+      "Retweet to get Doge", "Retweet to get Dogecoin",
+      "Retweet for Doge", "Retweet for Dogecoin",
+      "RT and get Doge", "RT and get Dogecoin",
+      "RT to get Doge", "RT to get Dogecoin",
+      "RT for Doge", "RT for Dogecoin"
+    ],
+    "currency": "DOGE"
+  }
+]

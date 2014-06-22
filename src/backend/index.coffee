@@ -1,7 +1,9 @@
+_ = require 'underscore'
 h5bp = require 'h5bp'
 path = require 'path'
 logger = require "#{__dirname}/logger"
 config = require "#{__dirname}/config.json"
+phrases = require "#{__dirname}/phrases.json"
 Twit = require 'twit'
 
 Handlebars = require 'handlebars'
@@ -20,8 +22,37 @@ app = h5bp.createServer
 #if process.env.NODE_ENV is 'development'
   # Put development environment only routes + code here
 
-twitter.post 'statuses/update', { status: 'hello world!' }, (err, data, response) ->
-  logger.info "update", arguments
+# Pull out all the possible tracks
+tracks = _.chain(phrases).reduce( ((memo, phrase) ->
+  memo.concat phrase.track
+), []).uniq().value()
+
+userStream = twitter.stream 'user',
+  with: 'user'  # Restrict to just the authenticated user's tweets/retweets
+  track: tracks # Filter to contain these phrases
+  stringify_friend_ids: true # ids in string, to avoid overflowing 32-bit ints
+
+userStream.on 'tweet', (tweet) ->
+
+  original = tweet.retweeted_status
+
+  # We're only interested in retweets of our posts
+  return if not original? or original.user.id_str isnt config.twitter.user_id
+
+
+  console.log "[TWEET]", tweet
+
+userStream.on 'connected', (req) ->
+  console.log "[CONNECTED]"
+
+userStream.on 'disconnect', (req) ->
+  console.log "[DISCONNECT]"
+
+
+twitter.post 'statuses/update', { status: 'Hurray! Retweet and get 101 Doge' }, (err, data, response) ->
+  console.log(err) if err
+  # console.log response
+  console.log data
 
 # app.get '/', (req, res) ->
 
