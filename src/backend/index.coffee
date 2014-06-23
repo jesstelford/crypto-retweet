@@ -40,23 +40,28 @@ _(phrases).each (phrase) ->
 
 getTweetPhraseMatch = (tweet) ->
 
-  # TODO: Log
-  return null if not tweet.user?
-
   # We're only interested in tweets of our posts
-  # TODO: Log
-  return if tweet.user.id_str isnt config.twitter.user_id
-
-  # TODO: Log
+  return null if not tweet.user?
+  return null if tweet.user.id_str isnt config.twitter.user_id
   return null if not tweet.text?
 
   matchedPhrase = _(phrases).find (phrase) -> tweet.text.match phrase.regex
-  # TODO: Log
-  return null if not matchedPhrase?
+
+  if not matchedPhrase?
+    logger.info "Unmatched phrase",
+      tweet: tweet.text
+      id: tweet.id_str
+      phrases: phrases
+    return null
 
   amount = tweet.text.match(matchedPhrase.regex)[1]
-  # TODO: Log
-  return null if not amount
+
+  if not amount
+    logger.info "Amount not determined",
+      tweet: tweet.text
+      id: tweet.id_str
+      phrases: phrases
+    return null
 
   result =
     phrase: matchedPhrase
@@ -66,7 +71,7 @@ getTweetPhraseMatch = (tweet) ->
 getReplyAndPhraseMatch = (tweet) ->
 
   result = getTweetPhraseMatch tweet
-  return if not result?
+  return null if not result?
 
   # If we have a selection of replies, pick one randomly
   # Otherwise, use it as-is
@@ -86,12 +91,29 @@ generateReplyText = (phrase, user, id) ->
 
 
 postReplyTweet = (phrase, user, id) ->
-  twitter.post 'statuses/update', {
-    status: generateReplyText phrase, user, id
-  }, (err, data, response) ->
-    console.log(err) if err
-    # console.log response
-    console.log data
+
+  text = generateReplyText phrase, user, id
+
+  twitter.post 'statuses/update', { status: text }, (err, data, response) ->
+
+    if err?
+      logger.error "Unable to post tweet",
+        phrase: phrase
+        tweet:
+          text: text
+        user:
+          screen_name: user
+          id: id
+      return
+
+    logger.info "Posted tweet",
+      phrase: phrase
+      tweet:
+        text: text
+        id: data.id_str
+      user:
+        screen_name: user
+        id: id
 
 processRetweet = (tweet) ->
 
@@ -105,8 +127,6 @@ processRetweet = (tweet) ->
   id = tweet.user.id_str
 
   postReplyTweet matchedPhrase, user, id
-
-  console.log "[RETWEET]", matchedPhrase.amount, matchedPhrase.phrase.currency
 
 processTweet = (tweet) ->
 
@@ -129,10 +149,10 @@ userStream.on 'tweet', (tweet) ->
     processTweet tweet
 
 userStream.on 'connected', (req) ->
-  console.log "[CONNECTED]"
+  logger.info "Connected"
 
 userStream.on 'disconnect', (req) ->
-  console.log "[DISCONNECT]"
+  logger.info "Disconnected"
 
 
 twitter.post 'statuses/update', { status: 'Refactor test 8! Retweet and get 25 Doge' }, (err, data, response) ->
