@@ -27,16 +27,25 @@ tracks = _.chain(phrases).reduce( ((memo, phrase) ->
   memo.concat phrase.track
 ), []).uniq().value()
 
-_(phrases).each (phrase) ->
+compiledPhrases = []
+_(phrases).each (originalPhrase, phraseIndex) ->
+
+  phrase = _({}).extend originalPhrase
+
+  phrase.id = phraseIndex
+
   # Convert the phrase regex's to RegExp objects
   phrase.regex = new RegExp(phrase.regex, 'i') if phrase.regex
 
   # Convert the replies to handlebars templates
   if _(phrase.reply).isArray()
-    _(phrase.reply).each (reply, index, list) -> list[index] = Handlebars.compile reply
+    # First, ensure we're using a copy, not the original array
+    phrase.reply = phrase.reply.slice()
+    _(phrase.reply).each (reply, index) -> phrase.reply[index] = Handlebars.compile reply
   else
     phrase.reply = Handlebars.compile phrase.reply
 
+  compiledPhrases.push phrase
 
 getTweetPhraseMatch = (tweet) ->
 
@@ -45,10 +54,10 @@ getTweetPhraseMatch = (tweet) ->
   return null if tweet.user.id_str isnt config.twitter.user_id
   return null if not tweet.text?
 
-  matchedPhrase = _(phrases).find (phrase) -> tweet.text.match phrase.regex
+  matchedPhrase = _(compiledPhrases).find (phrase) -> tweet.text.match phrase.regex
 
   if not matchedPhrase?
-    logger.info "Unmatched phrase",
+    logger.debug "Unmatched phrase",
       tweet: tweet.text
       id: tweet.id_str
       phrases: phrases
@@ -90,30 +99,30 @@ generateReplyText = (phrase, user, id) ->
     id: id
 
 
-postReplyTweet = (phrase, user, id) ->
+postReplyTweet = (tweet, phrase, user, id) ->
 
   text = generateReplyText phrase, user, id
 
   twitter.post 'statuses/update', { status: text }, (err, data, response) ->
 
-    if err?
-      logger.error "Unable to post tweet",
-        phrase: phrase
-        tweet:
-          text: text
-        user:
-          screen_name: user
-          id: id
-      return
-
-    logger.info "Posted tweet",
-      phrase: phrase
+    logInfo =
+      phrase: phrases[phrase.phrase.id]
       tweet:
         text: text
-        id: data.id_str
       user:
         screen_name: user
         id: id
+      original:
+        text: tweet.text
+        id: tweet.id_str
+
+    if err?
+      logInfo.error = err
+      logger.error "Unable to post tweet", logInfo
+      return
+
+    logInfo.tweet.id = data.id_str
+    logger.info "Posted tweet", logInfo
 
 processRetweet = (tweet) ->
 
@@ -126,7 +135,7 @@ processRetweet = (tweet) ->
   user = tweet.user.screen_name
   id = tweet.user.id_str
 
-  postReplyTweet matchedPhrase, user, id
+  postReplyTweet original, matchedPhrase, user, id
 
 processTweet = (tweet) ->
 
@@ -134,7 +143,7 @@ processTweet = (tweet) ->
   phrase = getTweetPhraseMatch tweet
   return if not phrase?
 
-  console.log "[TWEET]", phrase.amount, phrase.phrase.currency
+  # console.log "[TWEET]", phrase.amount, phrase.phrase.currency
 
 userStream = twitter.stream 'user',
   with: 'user'  # Restrict to just the authenticated user's tweets/retweets
@@ -142,6 +151,8 @@ userStream = twitter.stream 'user',
   stringify_friend_ids: true # ids in string, to avoid overflowing 32-bit ints
 
 userStream.on 'tweet', (tweet) ->
+
+  console.log tweet
 
   if tweet.retweeted_status?
     processRetweet tweet
@@ -155,10 +166,10 @@ userStream.on 'disconnect', (req) ->
   logger.info "Disconnected"
 
 
-twitter.post 'statuses/update', { status: 'Refactor test 8! Retweet and get 25 Doge' }, (err, data, response) ->
+twitter.post 'statuses/update', { status: 'Refactor test 25! Retweet and get 25 Doge' }, (err, data, response) ->
   console.log(err) if err
   # console.log response
-  console.log data
+  # console.log data
 
 # app.get '/', (req, res) ->
 
