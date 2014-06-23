@@ -9,6 +9,12 @@
       "RT to get Doge", "RT to get Dogecoin",
       "RT for Doge", "RT for Dogecoin"
     ],
-    "currency": "DOGE"
+    "currency": "DOGE",
+    "reply": [
+      "To the moon! @tipdoge tip @{{user}} {{amount}}",
+      "@tipdoge tip @{{user}} {{amount}} Dogecoins for being awesome!",
+      "@tipdoge tip @{{user}} {{amount}} Doge - Spread the word!",
+      "Here's some Dogecoin for you! @tipdoge tip @{{user}} {{amount}}"
+    ]
   }
 ]

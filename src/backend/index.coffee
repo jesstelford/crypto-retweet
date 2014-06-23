@@ -27,6 +27,17 @@ tracks = _.chain(phrases).reduce( ((memo, phrase) ->
   memo.concat phrase.track
 ), []).uniq().value()
 
+_(phrases).each (phrase) ->
+  # Convert the phrase regex's to RegExp objects
+  phrase.regex = new RegExp(phrase.regex, 'i') if phrase.regex
+
+  # Convert the replies to handlebars templates
+  if _(phrase.reply).isArray()
+    _(phrase.reply).each (reply, index, list) -> list[index] = Handlebars.compile reply
+  else
+    phrase.reply = Handlebars.compile phrase.reply
+
+
 userStream = twitter.stream 'user',
   with: 'user'  # Restrict to just the authenticated user's tweets/retweets
   track: tracks # Filter to contain these phrases
@@ -39,8 +50,33 @@ userStream.on 'tweet', (tweet) ->
   # We're only interested in retweets of our posts
   return if not original? or original.user.id_str isnt config.twitter.user_id
 
+  matchedPhrase = _(phrases).find (phrase) -> original.text.match phrase.regex
+  return if not matchedPhrase
 
-  console.log "[TWEET]", tweet
+  amount = original.text.match(matchedPhrase.regex)[1]
+  return if not amount
+
+  user = tweet.user.screen_name
+  id = tweet.user.id_str
+
+  # If we have a selection of replies, pick one randomly
+  # Otherwise, use it as-is
+  replyTemplate = if _(matchedPhrase.reply).isArray()
+    _(matchedPhrase.reply).sample()
+  else
+    matchedPhrase.reply
+
+  twitter.post 'statuses/update', {
+    status: replyTemplate
+      amount: amount
+      user: user
+      id: id
+  }, (err, data, response) ->
+    console.log(err) if err
+    # console.log response
+    console.log data
+
+  console.log "[TWEET]", amount, matchedPhrase.currency
 
 userStream.on 'connected', (req) ->
   console.log "[CONNECTED]"
@@ -49,7 +85,7 @@ userStream.on 'disconnect', (req) ->
   console.log "[DISCONNECT]"
 
 
-twitter.post 'statuses/update', { status: 'Hurray! Retweet and get 101 Doge' }, (err, data, response) ->
+twitter.post 'statuses/update', { status: 'Lets see if this works! Retweet and get 43 Doge' }, (err, data, response) ->
   console.log(err) if err
   # console.log response
   console.log data
