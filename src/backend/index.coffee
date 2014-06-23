@@ -38,6 +38,84 @@ _(phrases).each (phrase) ->
     phrase.reply = Handlebars.compile phrase.reply
 
 
+getTweetPhraseMatch = (tweet) ->
+
+  # TODO: Log
+  return null if not tweet.user?
+
+  # We're only interested in tweets of our posts
+  # TODO: Log
+  return if tweet.user.id_str isnt config.twitter.user_id
+
+  # TODO: Log
+  return null if not tweet.text?
+
+  matchedPhrase = _(phrases).find (phrase) -> tweet.text.match phrase.regex
+  # TODO: Log
+  return null if not matchedPhrase?
+
+  amount = tweet.text.match(matchedPhrase.regex)[1]
+  # TODO: Log
+  return null if not amount
+
+  result =
+    phrase: matchedPhrase
+    amount: amount
+
+
+getReplyAndPhraseMatch = (tweet) ->
+
+  result = getTweetPhraseMatch tweet
+  return if not result?
+
+  # If we have a selection of replies, pick one randomly
+  # Otherwise, use it as-is
+  result.reply = if _(result.phrase.reply).isArray()
+    _(result.phrase.reply).sample()
+  else
+    result.phrase.reply
+
+  return result
+
+
+generateReplyText = (phrase, user, id) ->
+  return phrase.reply
+    amount: phrase.amount
+    user: user
+    id: id
+
+
+postReplyTweet = (phrase, user, id) ->
+  twitter.post 'statuses/update', {
+    status: generateReplyText phrase, user, id
+  }, (err, data, response) ->
+    console.log(err) if err
+    # console.log response
+    console.log data
+
+processRetweet = (tweet) ->
+
+  original = tweet.retweeted_status
+
+  matchedPhrase = getReplyAndPhraseMatch original
+
+  return if not matchedPhrase?
+
+  user = tweet.user.screen_name
+  id = tweet.user.id_str
+
+  postReplyTweet matchedPhrase, user, id
+
+  console.log "[RETWEET]", matchedPhrase.amount, matchedPhrase.phrase.currency
+
+processTweet = (tweet) ->
+
+  # TODO: Log the tweet to the DB if it matches, in preparation for retweets
+  phrase = getTweetPhraseMatch tweet
+  return if not phrase?
+
+  console.log "[TWEET]", phrase.amount, phrase.phrase.currency
+
 userStream = twitter.stream 'user',
   with: 'user'  # Restrict to just the authenticated user's tweets/retweets
   track: tracks # Filter to contain these phrases
@@ -45,38 +123,10 @@ userStream = twitter.stream 'user',
 
 userStream.on 'tweet', (tweet) ->
 
-  original = tweet.retweeted_status
-
-  # We're only interested in retweets of our posts
-  return if not original? or original.user.id_str isnt config.twitter.user_id
-
-  matchedPhrase = _(phrases).find (phrase) -> original.text.match phrase.regex
-  return if not matchedPhrase
-
-  amount = original.text.match(matchedPhrase.regex)[1]
-  return if not amount
-
-  user = tweet.user.screen_name
-  id = tweet.user.id_str
-
-  # If we have a selection of replies, pick one randomly
-  # Otherwise, use it as-is
-  replyTemplate = if _(matchedPhrase.reply).isArray()
-    _(matchedPhrase.reply).sample()
+  if tweet.retweeted_status?
+    processRetweet tweet
   else
-    matchedPhrase.reply
-
-  twitter.post 'statuses/update', {
-    status: replyTemplate
-      amount: amount
-      user: user
-      id: id
-  }, (err, data, response) ->
-    console.log(err) if err
-    # console.log response
-    console.log data
-
-  console.log "[TWEET]", amount, matchedPhrase.currency
+    processTweet tweet
 
 userStream.on 'connected', (req) ->
   console.log "[CONNECTED]"
@@ -85,7 +135,7 @@ userStream.on 'disconnect', (req) ->
   console.log "[DISCONNECT]"
 
 
-twitter.post 'statuses/update', { status: 'Lets see if this works! Retweet and get 43 Doge' }, (err, data, response) ->
+twitter.post 'statuses/update', { status: 'Refactor test 8! Retweet and get 25 Doge' }, (err, data, response) ->
   console.log(err) if err
   # console.log response
   console.log data
