@@ -96,6 +96,7 @@ generateReplyText = (phrase, user, id) ->
   return phrase.reply
     amount: phrase.amount
     user: user
+    cacheBust: Date.now()
     id: id
 
 

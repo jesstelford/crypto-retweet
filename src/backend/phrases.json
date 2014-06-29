@@ -11,10 +11,10 @@
     ],
     "currency": "DOGE",
     "reply": [
-      "To the moon! @tipdoge tip @{{user}} {{amount}}",
-      "@tipdoge tip @{{user}} {{amount}} Dogecoins for being awesome!",
-      "@tipdoge tip @{{user}} {{amount}} Doge - Spread the word!",
-      "Here's some Dogecoin for you! @tipdoge tip @{{user}} {{amount}}"
+      "To the moon! @tipdoge tip @{{user}} {{amount}} http://tipdoge.info/?_={{cacheBust}}",
+      "@tipdoge tip @{{user}} {{amount}} Dogecoins for being awesome! http://tipdoge.info/?_={{cacheBust}}",
+      "@tipdoge tip @{{user}} {{amount}} Doge - Spread the word! http://tipdoge.info/?_={{cacheBust}}",
+      "Here's some Dogecoin for you! @tipdoge tip @{{user}} {{amount}} http://tipdoge.info/?_={{cacheBust}}"
     ]
   }
 ]
