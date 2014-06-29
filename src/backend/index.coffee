@@ -102,8 +102,7 @@ generateReplyText = (phrase, user, id) ->
 postReplyTweet = (tweet, phrase, user, id) ->
 
   text = generateReplyText phrase, user, id
-  # TODO: Add the id of the tweet we're replying to!
-  replyingTo = 0
+  replyingTo = tweet.id_str
 
   twitter.post 'statuses/update', { status: text, in_reply_to_status_id: replyingTo}, (err, data, response) ->
 
