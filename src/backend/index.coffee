@@ -102,9 +102,14 @@ generateReplyText = (phrase, user, id) ->
 postReplyTweet = (tweet, phrase, user, id) ->
 
   text = generateReplyText phrase, user, id
-  replyingTo = tweet.id_str
 
-  twitter.post 'statuses/update', { status: text, in_reply_to_status_id: replyingTo}, (err, data, response) ->
+  updateOptions =
+    status: generateReplyText phrase, user, id
+
+  if config.options.reply_to_original
+    updateOptions.in_reply_to_status_id = tweet.id_str
+
+  twitter.post 'statuses/update', updateOptions, (err, data, response) ->
 
     logInfo =
       phrase: phrases[phrase.phrase.id]
