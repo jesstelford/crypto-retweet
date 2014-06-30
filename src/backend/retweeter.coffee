@@ -83,17 +83,17 @@ generateReplyText = (phrase, user, id) ->
     id: id
 
 
-postReplyTweet = (tweet, phrase, user, id, postStatus) ->
+postReplyTweet = (tweet, phrase, user, userId, postStatus) ->
 
-  text = generateReplyText phrase, user, id
+  text = generateReplyText phrase, user, userId
 
   updateOptions =
-    status: generateReplyText phrase, user, id
+    status: generateReplyText phrase, user, userId
 
   if config.options.reply_to_original
     updateOptions.in_reply_to_status_id = tweet.id_str
 
-  postStatus updateOptions, (err, data, response) ->
+  postStatus updateOptions, (err, replyTweet, response) ->
 
     logInfo =
       phrase: phrases[phrase.phrase.id]
@@ -101,7 +101,7 @@ postReplyTweet = (tweet, phrase, user, id, postStatus) ->
         text: text
       user:
         screen_name: user
-        id: id
+        id: userId
       original:
         text: tweet.text
         id: tweet.id_str
@@ -111,7 +111,7 @@ postReplyTweet = (tweet, phrase, user, id, postStatus) ->
       logger.error "Unable to post tweet", logInfo
       return
 
-    logInfo.tweet.id = data.id_str
+    logInfo.tweet.id = replyTweet.id_str
     logger.info "Posted tweet", logInfo
 
 saveTweetDocument = (tweet, isRetweet) ->
@@ -143,9 +143,9 @@ processRetweet = (tweet, postStatus) ->
   saveTweetDocument tweet, true
 
   user = tweet.user.screen_name
-  id = tweet.user.id_str
+  userId = tweet.user.id_str
 
-  postReplyTweet original, matchedPhrase, user, id, postStatus
+  postReplyTweet original, matchedPhrase, user, userId, postStatus
 
 processTweet = (tweet) ->
 
