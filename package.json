@@ -24,7 +24,8 @@
     "h5bp": "~0.1.0",
     "winston": "~0.7.3",
     "twit": "~1.1.15",
-    "underscore": "~1.6.0"
+    "underscore": "~1.6.0",
+    "mongoose": "~3.8.12"
   },
   "devDependencies": {
     "coffee-script-redux": "2.0.0-beta7",

@@ -2,6 +2,7 @@ _ = require 'underscore'
 logger = require "#{__dirname}/logger"
 config = require "#{__dirname}/config.json"
 phrases = require "#{__dirname}/phrases.json"
+TweetModel = require "#{__dirname}/models/tweet"
 Handlebars = require 'handlebars'
 
 # Pull out all the possible tracks
@@ -113,6 +114,22 @@ postReplyTweet = (tweet, phrase, user, id, postStatus) ->
     logInfo.tweet.id = data.id_str
     logger.info "Posted tweet", logInfo
 
+saveTweetDocument = (tweet, isRetweet) ->
+
+  tweetDocument = new TweetModel
+    original: tweet
+    id: tweet.id_str
+    text: tweet.text
+    user_id: tweet.user.id_str
+    timestamp: tweet.timestamp
+    is_retweet: isRetweet
+
+  tweetDocument.save (err, doc) ->
+    return unless err?
+    logger.error "Unable to save Tweet to database",
+      error: err
+      values: doc.toObject()
+
 processRetweet = (tweet, postStatus) ->
 
   original = tweet.retweeted_status
@@ -121,6 +138,10 @@ processRetweet = (tweet, postStatus) ->
 
   return if not matchedPhrase?
 
+  console.log tweet
+
+  saveTweetDocument tweet, true
+
   user = tweet.user.screen_name
   id = tweet.user.id_str
 
@@ -128,9 +149,12 @@ processRetweet = (tweet, postStatus) ->
 
 processTweet = (tweet) ->
 
-  # TODO: Log the tweet to the DB if it matches, in preparation for retweets
   phrase = getTweetPhraseMatch tweet
   return if not phrase?
+
+  console.log tweet
+
+  saveTweetDocument tweet, false
 
   # console.log "[TWEET]", phrase.amount, phrase.phrase.currency
 

@@ -2,6 +2,7 @@ h5bp = require 'h5bp'
 path = require 'path'
 logger = require "#{__dirname}/logger"
 config = require "#{__dirname}/config.json"
+mongoose = require 'mongoose'
 retweeter = require "#{__dirname}/retweeter"
 Twit = require 'twit'
 
@@ -9,37 +10,46 @@ Handlebars = require 'handlebars'
 require './templates/index'
 require './templates/error'
 
-twitter = new Twit config.twit
-
 # Note that the directory tree is relative to the 'BACKEND_LIBDIR' Makefile
 # variable (`lib` by default) directory
-app = h5bp.createServer
-  root: path.join(__dirname, "..", "public")
-  www: false     # Redirect www.example.tld -> example.tld
-  compress: true # gzip responses from the server
+# app = h5bp.createServer
+#   root: path.join(__dirname, "..", "public")
+#   www: false     # Redirect www.example.tld -> example.tld
+#   compress: true # gzip responses from the server
 
 #if process.env.NODE_ENV is 'development'
   # Put development environment only routes + code here
+
+twitter = new Twit config.twit
 
 userStream = twitter.stream 'user',
   with: 'user'  # Restrict to just the authenticated user's tweets/retweets
   track: retweeter.tracks # Filter to contain these tracks
   stringify_friend_ids: true # ids in string, to avoid overflowing 32-bit ints
 
-userStream.on 'tweet', (tweet) ->
+mongoose.connect 'mongodb://localhost/test'
+db = mongoose.connection
 
-  console.log tweet
+db.on 'error', (error) ->
+  logger.error "Database connection error",
+    error: error
 
-  if tweet.retweeted_status?
-    retweeter.processRetweet tweet, twitter.post.bind(twitter, 'statuses/update')
-  else
-    retweeter.processTweet tweet
+db.once 'open', ->
 
-userStream.on 'connected', (req) ->
-  logger.info "Connected"
+  userStream.on 'tweet', (tweet) ->
 
-userStream.on 'disconnect', (req) ->
-  logger.info "Disconnected"
+    return unless tweet.user? and tweet.id_str? and tweet.text?
+
+    if tweet.retweeted_status?
+      retweeter.processRetweet tweet, twitter.post.bind(twitter, 'statuses/update')
+    else
+      retweeter.processTweet tweet
+
+  userStream.on 'connected', (req) ->
+    logger.info "Connected"
+
+  userStream.on 'disconnect', (req) ->
+    logger.info "Disconnected"
 
 
 # twitter.post 'statuses/update', { status: 'Refactor test 25! Retweet and get 25 Doge' }, (err, data, response) ->
