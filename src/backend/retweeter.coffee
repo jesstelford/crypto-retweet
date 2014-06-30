@@ -141,8 +141,6 @@ processRetweet = (tweet, postStatus) ->
 
   return if not matchedPhrase?
 
-  console.log tweet
-
   saveTweetDocument tweet, true
 
   user = tweet.user.screen_name
@@ -155,11 +153,7 @@ processTweet = (tweet) ->
   phrase = getTweetPhraseMatch tweet
   return if not phrase?
 
-  console.log tweet
-
   saveTweetDocument tweet, false
-
-  # console.log "[TWEET]", phrase.amount, phrase.phrase.currency
 
 module.exports =
   tracks: tracks
