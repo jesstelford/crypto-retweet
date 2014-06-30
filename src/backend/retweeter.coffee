@@ -3,6 +3,7 @@ logger = require "#{__dirname}/logger"
 config = require "#{__dirname}/config.json"
 phrases = require "#{__dirname}/phrases.json"
 TweetModel = require "#{__dirname}/models/tweet"
+PayoutModel = require "#{__dirname}/models/payout"
 Handlebars = require 'handlebars'
 
 # Pull out all the possible tracks
@@ -83,7 +84,7 @@ generateReplyText = (phrase, user, id) ->
     id: id
 
 
-postReplyTweet = (tweet, phrase, user, userId, postStatus) ->
+postReplyTweet = (tweet, phrase, user, userId, retweetId, postStatus) ->
 
   text = generateReplyText phrase, user, userId
 
@@ -113,6 +114,20 @@ postReplyTweet = (tweet, phrase, user, userId, postStatus) ->
 
     logInfo.tweet.id = replyTweet.id_str
     logger.info "Posted tweet", logInfo
+
+    saveTweetDocument replyTweet, false
+
+    payout = new PayoutModel
+      tweet_id: tweet.id_str
+      retweet_id: retweetId
+      payout_tweet_id: replyTweet.id_str
+      user_id: userId
+      currency: phrases[phrase.phrase.id].currency
+      amount: phrase.amount
+      timestamp: replyTweet.timestamp
+
+    saveDocument payout, "Payout"
+
 
 saveTweetDocument = (tweet, isRetweet) ->
 
@@ -146,7 +161,23 @@ processRetweet = (tweet, postStatus) ->
   user = tweet.user.screen_name
   userId = tweet.user.id_str
 
-  postReplyTweet original, matchedPhrase, user, userId, postStatus
+  # We want to make sure someone isn't gaming the system before we do another
+  # payout
+  PayoutModel.findExisting original.id_str, userId, (err, payouts) ->
+
+    if err?
+      logger.error "Unable to check for existing payouts",
+        error: err
+        tweet_id: original.id_str
+        user_id: userId
+
+    # Looks like we've already paid out to this user for retweeting this tweet
+    if payouts.length > 0
+      payouts[0].attempts = payouts[0].attempts + 1
+      saveDocument payouts[0], 'Payout'
+
+    else
+      postReplyTweet original, matchedPhrase, user, userId, tweet.id_str, postStatus
 
 processTweet = (tweet) ->
 
