@@ -124,9 +124,12 @@ saveTweetDocument = (tweet, isRetweet) ->
     timestamp: tweet.timestamp
     is_retweet: isRetweet
 
-  tweetDocument.save (err, doc) ->
+  saveDocument tweetDocument, "Tweet"
+
+saveDocument = (document, type) ->
+  document.save (err, doc) ->
     return unless err?
-    logger.error "Unable to save Tweet to database",
+    logger.error "Unable to save #{type} to database",
       error: err
       values: doc.toObject()
 
