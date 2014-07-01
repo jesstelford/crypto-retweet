@@ -10,5 +10,8 @@
   },
   "options": {
     "reply_to_original": false
-  }
+  },
+	"mongo": {
+		"db": "cryptoretweet"
+	}
 }

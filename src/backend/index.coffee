@@ -27,7 +27,7 @@ userStream = twitter.stream 'user',
   track: retweeter.tracks # Filter to contain these tracks
   stringify_friend_ids: true # ids in string, to avoid overflowing 32-bit ints
 
-mongoose.connect 'mongodb://localhost/test'
+mongoose.connect "mongodb://localhost/#{config.mongo.db}"
 db = mongoose.connection
 
 db.on 'error', (error) ->
