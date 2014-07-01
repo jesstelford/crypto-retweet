@@ -1,6 +1,6 @@
 {
   "name": "crypto-retweet",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Paid retweets using cryptocurrencies such as Dogecoin",
   "homepage": "https://github.com/jesstelford/crypto-retweet",
   "keywords": [],
